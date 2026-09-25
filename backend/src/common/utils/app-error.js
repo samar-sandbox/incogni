@@ -21,3 +21,7 @@ export function ForbiddenError(message = "Forbidden") {
 export function ConflictError(message = "Conflict") {
   return AppError(message, 409);
 }
+
+export function InternalServerError(message = "Internal Server Error") {
+  return AppError(message, 500);
+}

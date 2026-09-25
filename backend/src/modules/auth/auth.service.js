@@ -1,49 +1,35 @@
-import { compare, decrypt, encrypt, hash } from "../../utils/index.js";
 import { DbService, User } from "../../database/index.js";
 import {
   BadRequestError,
   ConflictError,
-  UnauthorizedError,
-} from "../../utils/app-error.js";
+  compare,
+  encrypt,
+  getTokens,
+  hash,
+  verifyGoogleIdToken,
+} from "../../common/utils/index.js";
+import { AUTH_PROVIDER, USER_ROLE } from "../../common/enums/index.js";
+import config from "../../config/config.js";
 
 const userRepo = new DbService(User);
 
-async function checkUserEmail(email, id) {
-  const user = await userRepo.exists({ email });
-
-  if (!user || (id && user._id.equals(id))) {
-    return { success: true };
-  }
-
-  return ConflictError("Email already exists");
-}
-
 export async function signup(userData) {
-  if (!userData) {
-    return BadRequestError("Invalid user data");
-  }
+  const { email, password, phone } = userData;
 
-  const { name, email, password, phone } = userData;
-
-  // Validate before hashing the password and encrypting the phone number
-  const [firstName] = name.split(" ") || "";
-  await userRepo.validate({
-    ...userData,
-    firstName,
-  });
-
-  if (email) {
-    await checkUserEmail(email);
+  const user = await userRepo.exists({ email });
+  if (user) {
+    return ConflictError("Email already exists");
   }
 
   const hashedPassword = await hash(password);
   const encryptedPhone = encrypt(phone);
 
-  const user = await userRepo.create(
+  const newUser = await userRepo.create(
     {
       ...userData,
       password: hashedPassword,
       phone: encryptedPhone,
+      provider: AUTH_PROVIDER.LOCAL,
     },
     {
       // already validated before password hashing and phone encryption
@@ -52,30 +38,86 @@ export async function signup(userData) {
     },
   );
 
-  return { message: "User created successfully", data: { _id: user._id } };
+  return { message: "User created successfully", data: { _id: newUser._id } };
 }
 
 export async function login(userData) {
-  if (!userData) {
-    return BadRequestError("Invalid user data");
-  }
-
   const { email, password } = userData;
 
-  const user = await userRepo.findOne({ email }, { lean: false });
+  const user = await userRepo.findOne({ email });
   if (!user) {
-    return UnauthorizedError("Invalid email or password");
+    return BadRequestError("Invalid email or password");
   }
 
-  const userObj = user.toObject();
-  const { password: userPassword, phone: userPhone, ...data } = userObj;
+  const {
+    password: userPassword,
+    _id,
+    role = USER_ROLE.USER,
+    provider = AUTH_PROVIDER.LOCAL,
+  } = user;
+
+  if (provider !== AUTH_PROVIDER.LOCAL) {
+    return BadRequestError("Invalid email or password");
+  }
 
   const match = await compare(password, userPassword);
   if (!match) {
-    return UnauthorizedError("Invalid email or password");
+    return BadRequestError("Invalid email or password");
   }
 
-  const phone = decrypt(userPhone);
+  const tokens = getTokens({ sub: _id, role }, role);
 
-  return { message: "User logged in successfully", data: { ...data, phone } };
+  return { message: "User logged in successfully", data: tokens };
+}
+
+export async function refreshTokens(userPayload) {
+  const { sub, role, iat } = userPayload;
+
+  const elapsedSec = Math.floor(Date.now() / 1000) - iat;
+
+  if (elapsedSec < config.jwtExpiresIn.accessKey) {
+    return BadRequestError("Cannot refresh access token before expiration");
+  }
+
+  const tokens = getTokens({ sub, role }, role);
+
+  return { message: "Tokens refreshed successfully", data: tokens };
+}
+
+export async function handleGoogleAuth({ credential }) {
+  const { email, name, image } = await verifyGoogleIdToken(credential);
+
+  const user = await userRepo.findOne({ email });
+
+  let sub,
+    isNew = true;
+  if (!user) {
+    const [firstName, lastName] = (name || "").split(" ");
+    const newUser = await userRepo.create({
+      firstName,
+      lastName,
+      email,
+      image,
+      provider: AUTH_PROVIDER.GOOGLE,
+      emailConfirmed: true,
+    });
+
+    sub = newUser._id;
+  } else if (user.provider !== AUTH_PROVIDER.GOOGLE) {
+    return ConflictError(
+      "An account already exists with this email, log in with your password instead",
+    );
+  } else {
+    sub = user._id;
+    isNew = false;
+  }
+
+  const role = USER_ROLE.USER;
+  const tokens = getTokens({ sub, role }, role);
+
+  return {
+    message: `User ${isNew ? "created" : "logged in"} successfully`,
+    data: tokens,
+    isNew,
+  };
 }

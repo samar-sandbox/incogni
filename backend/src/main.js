@@ -1,5 +1,6 @@
 import express from "express";
-import errorHandler from "./middlewares/error-handler.middleware.js";
+import cors from "cors";
+import { errorHandler } from "./common/middlewares/index.js";
 import config from "./config/config.js";
 import { connectDatabase } from "./database/index.js";
 import {
@@ -13,6 +14,7 @@ const port = config.port;
 const app = express();
 
 app.use(express.json());
+app.use(cors({ origin: "http://localhost:5173" }));
 
 app.get("/", (req, res) => {
   return res.json({ message: "Incogni API is running" });

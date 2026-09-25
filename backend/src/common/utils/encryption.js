@@ -1,5 +1,5 @@
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
-import config from "../config/config.js";
+import config from "../../config/config.js";
 
 const ALGORITHM = "aes-256-cbc";
 const KEY = Buffer.from(config.encryptionKey, "hex");

@@ -1,5 +1,9 @@
 import { model, Schema } from "mongoose";
-import { GENDER_ENUM } from "../../enums/index.js";
+import {
+  AUTH_PROVIDER,
+  USER_GENDER,
+  USER_ROLE,
+} from "../../common/enums/index.js";
 
 const schema = new Schema(
   {
@@ -22,12 +26,22 @@ const schema = new Schema(
     },
     password: {
       type: String,
-      required: [true, "Password is required"],
+      required: [
+        function () {
+          return this.provider === "local";
+        },
+        "Password is required",
+      ],
       minLength: [6, "Password must be at least 6 characters long"],
     },
     phone: {
       type: String,
-      required: [true, "Phone is required"],
+      required: [
+        function () {
+          return this.provider === "local";
+        },
+        "Phone is required",
+      ],
       validate: {
         validator(value) {
           return /^01[0125][0-9]{8}$/.test(value);
@@ -44,11 +58,24 @@ const schema = new Schema(
     gender: {
       type: String,
       enum: {
-        values: Object.values(GENDER_ENUM),
+        values: Object.values(USER_GENDER),
         message:
           "`{VALUE}` is not a valid enum value for path `gender`: 'male' or 'female'",
       },
-      default: GENDER_ENUM.MALE,
+    },
+    role: {
+      type: Number,
+      enum: {
+        values: Object.values(USER_ROLE),
+        message:
+          "`{VALUE}` is not a valid enum value for path `role`: 0 (user) or 1 (admin)",
+      },
+      default: USER_ROLE.USER,
+    },
+    provider: {
+      type: String,
+      enum: AUTH_PROVIDER,
+      default: AUTH_PROVIDER.LOCAL,
     },
     emailConfirmed: Boolean,
     image: String,
@@ -69,7 +96,9 @@ schema
     const [firstName, lastName] = value.split(" ");
 
     this.firstName = firstName;
-    this.lastName = lastName;
+    if (lastName) {
+      this.lastName = lastName;
+    }
   })
   .get(function () {
     return `${this.firstName}${this.lastName ? ` ${this.lastName}` : ""}`;
