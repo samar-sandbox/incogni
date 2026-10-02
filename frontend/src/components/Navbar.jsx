@@ -1,18 +1,36 @@
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { VenetianMask } from "lucide-react";
+import { Loader2, LogOut, VenetianMask } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ProfileButton from "./profile/ProfileButton";
+import { axiosInstance } from "@/axios";
+import { toast } from "./ui/toast";
 
 export default function Navbar() {
+  const [isLoading, setIsLoading] = useState(false);
+
   const isAuthed = Boolean(localStorage.getItem("access_token"));
 
   const navigate = useNavigate();
 
   const handleLogout = async () => {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
+    try {
+      setIsLoading(true);
 
-    await navigate("/login");
+      await axiosInstance.post("/auth/logout");
+
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("refresh_token");
+
+      await navigate("/login");
+    } catch (error) {
+      toast.add({
+        type: "error",
+        description: error.message,
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -27,7 +45,19 @@ export default function Navbar() {
           {isAuthed ? (
             <>
               <ProfileButton />
-              <Button onClick={handleLogout}>Log out</Button>
+              <Button onClick={handleLogout}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Loading..
+                  </>
+                ) : (
+                  <>
+                    <LogOut className="h-4 w-4" />
+                    Log out
+                  </>
+                )}
+              </Button>
             </>
           ) : (
             <>

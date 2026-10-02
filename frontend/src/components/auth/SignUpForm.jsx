@@ -27,7 +27,7 @@ export default function SignUpForm() {
       email: "",
       password: "",
       confirmPassword: "",
-      gender: "male",
+      gender: "",
       phone: "",
     },
     resolver: zodResolver(signupSchema),
@@ -91,13 +91,7 @@ export default function SignUpForm() {
 
       <div className="space-y-1.5">
         <Label htmlFor="age">Age</Label>
-        <Input
-          id="age"
-          type="number"
-          {...register("age", {
-            setValueAs: (v) => (v === "" ? undefined : Number(v)),
-          })}
-        />
+        <Input id="age" type="number" {...register("age")} />
         {errors.age && (
           <p className="text-sm text-destructive">{errors.age.message}</p>
         )}
@@ -105,10 +99,7 @@ export default function SignUpForm() {
 
       <div className="space-y-1.5">
         <Label>Gender</Label>
-        <Select
-          defaultValue="male"
-          onValueChange={(v) => setValue("gender", v)}
-        >
+        <Select onValueChange={(v) => setValue("gender", v)}>
           <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>
