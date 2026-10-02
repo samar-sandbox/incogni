@@ -81,6 +81,7 @@ const schema = new Schema(
     image: String,
     coverImages: [String],
     deletedAt: Date,
+    tokensValidAfter: Date,
   },
   {
     timestamps: true,

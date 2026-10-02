@@ -2,14 +2,25 @@ import { DbService, User } from "../../database/index.js";
 import {
   BadRequestError,
   ConflictError,
+  buildRevokeKey,
+  buildUserKey,
   compare,
   encrypt,
-  getTokens,
   hash,
-  verifyGoogleIdToken,
 } from "../../common/utils/index.js";
-import { AUTH_PROVIDER, USER_ROLE } from "../../common/enums/index.js";
+import {
+  AUTH_PROVIDER,
+  LOGOUT_MODE,
+  USER_ROLE,
+} from "../../common/enums/index.js";
 import config from "../../config/config.js";
+import {
+  getTokens,
+  verifyGoogleIdToken,
+  set,
+  del,
+  keys,
+} from "../../common/services/index.js";
 
 const userRepo = new DbService(User);
 
@@ -120,4 +131,30 @@ export async function handleGoogleAuth({ credential }) {
     data: tokens,
     isNew,
   };
+}
+
+export async function logout(user, mode) {
+  if (mode === LOGOUT_MODE.ALL) {
+    await userRepo.updateOne(
+      { _id: user.id },
+      { tokensValidAfter: new Date() },
+    );
+
+    const userKeys = await keys(buildUserKey(user.id));
+    if (userKeys.length > 0) {
+      await del(userKeys);
+    }
+
+    return { message: "User logged out successfully" };
+  }
+
+  const key = buildRevokeKey(user.id, user.jti);
+  const ttl =
+    config.jwtExpiresIn.refreshKey - (Math.floor(Date.now() / 1000) - user.iat);
+
+  if (ttl > 0) {
+    await set(key, user.jti, ttl);
+  }
+
+  return { message: "User logged out successfully" };
 }

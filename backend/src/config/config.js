@@ -4,6 +4,7 @@ dotenv.config();
 
 export default {
   dbURI: process.env.DB_URI || "mongodb://localhost:27017/incogni",
+  redisURL: process.env.REDIS_URL || "redis://localhost:6379",
   port: process.env.PORT || 3000,
   encryptionKey:
     process.env.ENCRYPTION_KEY ||

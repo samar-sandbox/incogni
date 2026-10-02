@@ -1,43 +1,82 @@
 import { z } from "zod";
-import { USER_GENDER, USER_ROLE } from "../../common/enums/index.js";
+import {
+  LOGOUT_MODE,
+  USER_GENDER,
+  USER_ROLE,
+} from "../../common/enums/index.js";
+import { validationMessages } from "../../common/utils/translations.js";
 
-export const registerSchema = z.object({
-  name: z.string().min(3, "Name must be at least 3 characters long"),
-  email: z.email("Email must be a valid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters long"),
-  phone: z
-    .string()
-    .regex(
-      /^01[0125][0-9]{8}$/,
-      "Phone number must be a valid Egyptian number starting with 010, 011, 012, or 015 and followed by 8 digits",
-    )
-    .optional(),
-  age: z.coerce
-    .number()
-    .int()
-    .min(18, "Age must be at least 18 years old")
-    .max(60, "Age must be at most 60 years old")
-    .optional(),
-  gender: z
-    .enum(
-      Object.values(USER_GENDER),
-      "Invalid enum value for path `gender`: 'male' or 'female'",
-    )
-    .optional(),
-  role: z
-    .enum(
-      Object.values(USER_ROLE),
-      "valid enum value for path `role`: 0 (user) or 1 (admin)",
-    )
-    .optional(),
-});
+export const registerSchema = (lang) =>
+  z.object({
+    body: z.object({
+      name: z.string().min(3, validationMessages.name[lang]),
+      email: z.email(validationMessages.email[lang]),
+      password: z
+        .string()
+        .regex(
+          /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[^A-Za-z0-9\s]).{6,}$/,
+          validationMessages.password.format[lang],
+        ),
+      phone: z
+        .string()
+        .regex(/^01[0125][0-9]{8}$/, validationMessages.phone[lang]),
+      age: z.coerce
+        .number()
+        .int()
+        .min(18, validationMessages.age.min[lang])
+        .max(60, validationMessages.age.max[lang]),
+      gender: z
+        .enum(
+          USER_GENDER,
+          validationMessages.invalidEnumValue(
+            "gender",
+            Object.values(USER_GENDER),
+          )[lang],
+        )
+        .optional(),
+      role: z
+        .enum(
+          USER_ROLE,
+          validationMessages.invalidEnumValue(
+            "role",
+            Object.entries(USER_ROLE).map(
+              ([key, value]) => `${value} (${key})`,
+            ),
+          )[lang],
+        )
+        .default(USER_ROLE.USER),
+    }),
+  });
 
-export const loginSchema = z.object({
-  email: z.email("Email must be a valid email address"),
-  password: z.string().min(1, "Password is required"),
-});
+export const loginSchema = (lang) =>
+  z.object({
+    body: z.object({
+      email: z.email(validationMessages.email[lang]),
+      password: z.string().min(1, validationMessages.password.required[lang]),
+    }),
+  });
 
-export const googleAuthSchema = z.object({
-  credential: z.string().min(1, "Google ID token is required"),
-  clientId: z.string().optional(),
-});
+export const googleAuthSchema = (lang) =>
+  z.object({
+    body: z.object({
+      credential: z.string().min(1, validationMessages.googleId[lang]),
+      clientId: z.string().optional(),
+    }),
+  });
+
+export const logoutSchema = (lang) =>
+  z.object({
+    query: z.object({
+      mode: z
+        .enum(
+          LOGOUT_MODE,
+          validationMessages.invalidEnumValue(
+            "mode",
+            Object.entries(LOGOUT_MODE).map(
+              ([key, value]) => `${value} (${key})`,
+            ),
+          )[lang],
+        )
+        .default(LOGOUT_MODE.DEVICE),
+    }),
+  });

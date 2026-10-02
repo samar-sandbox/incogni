@@ -12,7 +12,10 @@ export async function getUsers(userId) {
 
   return {
     message: "Users retrieved successfully",
-    data: users.map((user) => ({ ...user, phone: decrypt(user.phone) })),
+    data: users.map((user) => ({
+      ...user,
+      phone: user.phone ? decrypt(user.phone) : user.phone,
+    })),
   };
 }
 
