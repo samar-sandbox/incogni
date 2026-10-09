@@ -25,4 +25,8 @@ export default {
     secret: process.env.GOOGLE_CLIENT_SECRET,
     webIds: (process.env.GOOGLE_CLIENT_IDS || "").split(","),
   },
+  googleMail: {
+    user: process.env.GOOGLE_MAIL_APP_USER,
+    password: process.env.GOOGLE_MAIL_APP_PASSWORD,
+  },
 };

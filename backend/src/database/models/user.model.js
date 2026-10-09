@@ -78,6 +78,7 @@ const schema = new Schema(
       default: AUTH_PROVIDER.LOCAL,
     },
     emailConfirmed: Boolean,
+    twoStepVerificationEnabled: Boolean,
     image: String,
     coverImages: [String],
     deletedAt: Date,

@@ -41,6 +41,10 @@ export const validationMessages = {
     [LANG.EN]: "Google ID token is required",
     [LANG.AR]: "رمز Google مطلوب",
   },
+  otp: {
+    [LANG.EN]: "Invalid OTP",
+    [LANG.AR]: "رمز OTP غير صالح",
+  },
 
   invalidEnumValue: (enumName, validValues) => ({
     [LANG.EN]: `Invalid enum value for path \`${enumName}\`: ${validValues.join(

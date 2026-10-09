@@ -3,7 +3,7 @@ import config from "../config/config.js";
 import { User, Message } from "./models/index.js";
 
 export async function connectDatabase() {
-  console.log(`Connecting to database`);
+  console.log(`Connecting to database...`);
 
   await mongoose.connect(config.dbURI);
 

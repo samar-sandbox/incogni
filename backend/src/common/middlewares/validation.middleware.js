@@ -1,4 +1,4 @@
-import { BadRequestError } from "../utils/index.js";
+import { BadRequestError } from "../exceptions/app.exception.js";
 
 export function validation(schema) {
   return function (req, res, next) {

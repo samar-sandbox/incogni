@@ -1,7 +1,6 @@
 import express from "express";
 import cors from "cors";
-import { errorHandler } from "./common/middlewares/index.js";
-import { localization } from "./common/middlewares/localization.middleware.js";
+import { errorHandler, localization } from "./common/middlewares/index.js";
 import config from "./config/config.js";
 import { connectDatabase } from "./database/index.js";
 import {
@@ -9,7 +8,8 @@ import {
   messageController,
   userController,
 } from "./modules/index.js";
-import { connectRedis } from "./common/services/redis.service.js";
+import { connectRedis } from "./common/services/redis/index.js";
+import { verifyMailConnection } from "./common/services/mail/index.js";
 
 const port = config.port;
 
@@ -17,7 +17,10 @@ const app = express();
 
 app.use(express.json());
 app.use(cors({ origin: "http://localhost:5173" }));
+
 app.use(localization);
+
+app.use("/uploads", express.static("uploads"));
 
 app.get("/", (req, res) => {
   return res.json({ message: "Incogni API is running" });
@@ -40,8 +43,11 @@ app.use("/*splat", (req, res) => {
 app.use(errorHandler);
 
 async function initConnections() {
-  await connectDatabase();
-  await connectRedis();
+  await Promise.all([
+    connectDatabase(),
+    connectRedis(),
+    verifyMailConnection(),
+  ]);
 }
 
 initConnections()
@@ -51,5 +57,5 @@ initConnections()
     });
   })
   .catch((error) => {
-    console.log(`Error connecting database: ${error}`);
+    console.log(`Error init connections: ${error}`);
   });

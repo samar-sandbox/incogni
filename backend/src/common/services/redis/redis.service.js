@@ -1,17 +1,4 @@
-import { createClient } from "redis";
-import config from "../../config/config.js";
-
-const client = createClient({ url: config.redisURL });
-
-export async function connectRedis() {
-  console.log(`Connecting to redis`);
-
-  client.on("error", (err) => console.log("Redis Client Error", err));
-
-  await client.connect();
-
-  console.log("Redis connected successfully");
-}
+import { client } from "./redis.connection.js";
 
 export async function set(key, value, ttl) {
   return client.set(key, value, {
@@ -24,6 +11,11 @@ export async function set(key, value, ttl) {
 
 export async function get(key) {
   return client.get(key);
+}
+
+export async function getNum(key) {
+  const value = await get(key);
+  return value ? parseInt(value) : 0;
 }
 
 export async function setJson(key, value, ttl) {
@@ -54,4 +46,12 @@ export async function expire(key, seconds) {
 
 export async function keys(prefix) {
   return client.keys(`${prefix}*`);
+}
+
+export async function incrBy(key, increment = 1) {
+  return client.incrBy(key, increment);
+}
+
+export async function ttl(key) {
+  return client.ttl(key);
 }

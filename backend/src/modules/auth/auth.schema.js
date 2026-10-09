@@ -12,7 +12,7 @@ export const registerSchema = (lang) =>
       name: z.string().min(3, validationMessages.name[lang]),
       email: z.email(validationMessages.email[lang]),
       password: z
-        .string()
+        .string(validationMessages.password.required[lang])
         .regex(
           /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[^A-Za-z0-9\s]).{6,}$/,
           validationMessages.password.format[lang],
@@ -21,7 +21,7 @@ export const registerSchema = (lang) =>
         .string()
         .regex(/^01[0125][0-9]{8}$/, validationMessages.phone[lang]),
       age: z.coerce
-        .number()
+        .number("Age must be a valid number")
         .int()
         .min(18, validationMessages.age.min[lang])
         .max(60, validationMessages.age.max[lang]),
@@ -78,5 +78,35 @@ export const logoutSchema = (lang) =>
           )[lang],
         )
         .default(LOGOUT_MODE.DEVICE),
+    }),
+  });
+
+const verifyOTPBodySchema = (lang) =>
+  z.object({
+    email: z.email(validationMessages.email[lang]),
+    otp: z.coerce.string().regex(/[0-9]{6}/, validationMessages.otp[lang]),
+  });
+
+export const verifyOTPSchema = (lang) =>
+  z.object({
+    body: verifyOTPBodySchema(lang),
+  });
+
+export const sendOTPSchema = (lang) =>
+  z.object({
+    body: z.object({
+      email: z.email(validationMessages.email[lang]),
+    }),
+  });
+
+export const resetPasswordSchema = (lang) =>
+  z.object({
+    body: verifyOTPBodySchema(lang).extend({
+      password: z
+        .string(validationMessages.password.required[lang])
+        .regex(
+          /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[^A-Za-z0-9\s]).{6,}$/,
+          validationMessages.password.format[lang],
+        ),
     }),
   });

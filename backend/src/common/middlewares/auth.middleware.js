@@ -1,15 +1,13 @@
 import config from "../../config/config.js";
 import { DbService, User } from "../../database/index.js";
 import { USER_ROLE } from "../enums/user.enum.js";
-import { exists } from "../services/redis.service.js";
 import {
-  buildRevokeKey,
-  decodeToken,
   ForbiddenError,
   InternalServerError,
   UnauthorizedError,
-  verifyToken,
-} from "../utils/index.js";
+} from "../exceptions/app.exception.js";
+import { verifyToken, decodeToken } from "../services/auth/jwt.service.js";
+import { buildRevokeKey, exists } from "../services/redis/index.js";
 
 const userRepo = new DbService(User);
 
@@ -55,6 +53,11 @@ export function authentication(isAccessToken = true) {
 
       payload = verifyToken(token, secret);
     } catch (error) {
+      console.log(
+        "🚀 ~ auth.middleware.js:56 ~ authentication ~ error:",
+        error,
+      );
+
       return UnauthorizedError("Invalid token");
     }
 
