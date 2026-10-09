@@ -5,6 +5,30 @@ export const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
+export const sendOTPSchema = z.object({
+  email: z.email("Email must be a valid email address"),
+});
+
+export const verifyOTPSchema = z.object({
+  email: z.email("Email must be a valid email address"),
+  otp: z.string().regex(/[0-9]{6}/, "Invalid OTP"),
+});
+
+export const resetPasswordSchema = verifyOTPSchema
+  .extend({
+    password: z
+      .string()
+      .regex(
+        /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[^A-Za-z0-9\s]).{6,}$/,
+        "Password must be at least 6 characters long and contain at least one uppercase letter, one lowercase letter, one digit, and one special character",
+      ),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    path: ["confirmPassword"],
+    message: "Passwords don't match",
+  });
+
 export const signupSchema = z
   .object({
     name: z.string().min(3, "Name must be at least 3 characters long"),

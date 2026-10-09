@@ -8,6 +8,10 @@ import {
   PopoverHeader,
   PopoverTitle,
 } from "../ui/popover";
+import TwoStepVerificationControl from "./TwoStepVerificationControl";
+import { useRef } from "react";
+import { axiosInstance } from "@/axios";
+import { toast } from "../ui/toast";
 
 const ROLE_LABEL = { 0: "User", 1: "Admin" };
 
@@ -37,15 +41,68 @@ function Field({ label, value }) {
   );
 }
 
-export default function ProfilePopover({ user }) {
+export default function ProfilePopover({
+  user,
+  onTwoStepVerificationEnabled,
+  onImageChange,
+  imageKey,
+}) {
   const displayName =
     user.name || [user.firstName, user.lastName].filter(Boolean).join(" ");
+
+  const fileInputRef = useRef(null);
+
+  const handleImageUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.set("image", file);
+
+    try {
+      const { success, message, data } = await axiosInstance.post(
+        "users/upload",
+        formData,
+      );
+
+      toast.add({
+        type: success ? "success" : "error",
+        description: message,
+      });
+
+      if (success) {
+        onImageChange(data.image);
+      }
+    } catch (error) {
+      toast.add({
+        type: "error",
+        description: error.message,
+      });
+    }
+  };
 
   return (
     <PopoverContent align="start">
       <PopoverHeader className="flex-row gap-4 mb-1">
-        <Avatar className="size-12">
-          <AvatarImage src={user.image} alt={displayName} />
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleImageUpload}
+        />
+
+        <Avatar
+          className="size-12 cursor-pointer"
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <AvatarImage
+            key={imageKey}
+            src={
+              user.image ? `${import.meta.env.VITE_API_URL}/${user.image}` : ""
+            }
+            alt={displayName}
+          />
           <AvatarFallback>
             {initials(user.firstName, user.lastName)}
           </AvatarFallback>
@@ -85,6 +142,25 @@ export default function ProfilePopover({ user }) {
           user.gender && user.gender[0].toUpperCase() + user.gender.slice(1)
         }
       />
+
+      <Separator className="my-2" />
+
+      <Field
+        label="Two-step verification"
+        value={
+          user.provider === "local"
+            ? user.twoStepVerificationEnabled
+              ? "Enabled"
+              : "Disabled"
+            : "Not available"
+        }
+      />
+      {user.provider === "local" && (
+        <TwoStepVerificationControl
+          user={user}
+          onEnabled={onTwoStepVerificationEnabled}
+        />
+      )}
 
       <Separator className="my-2" />
 

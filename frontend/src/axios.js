@@ -32,7 +32,7 @@ axiosInstance.interceptors.response.use(
     const status = error.response.status;
     const errorData = error.response.data;
 
-    if (status !== 401 || original._retry || original.url?.includes("/auth/")) {
+    if (status !== 401 || original._retry) {
       return Promise.reject(errorData);
     }
 

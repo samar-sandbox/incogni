@@ -1,6 +1,6 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { axiosInstance } from "@/axios";
 import { loginSchema } from "@/schema/auth";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { toast } from "../ui/toast";
 export default function LogInForm() {
   const {
     register,
+    watch,
     formState: { errors, isSubmitting },
     handleSubmit,
   } = useForm({
@@ -19,20 +20,25 @@ export default function LogInForm() {
   });
 
   const navigate = useNavigate();
+  const email = watch("email");
 
   const handleLogin = async (formData) => {
     try {
-      const { success, message, data } = await axiosInstance.post(
-        "auth/login",
-        formData,
-      );
+      const { success, message, data, twoStepVerificationEnabled } =
+        await axiosInstance.post("auth/login", formData);
 
       toast.add({
         type: success ? "success" : "error",
         description: message,
       });
 
-      if (success) {
+      if (!success) return;
+
+      if (twoStepVerificationEnabled) {
+        await navigate(
+          `/verify-login?email=${encodeURIComponent(formData.email)}`,
+        );
+      } else {
         localStorage.setItem("access_token", data.accessToken);
         localStorage.setItem("refresh_token", data.refreshToken);
 
@@ -56,6 +62,20 @@ export default function LogInForm() {
           placeholder="you@example.com"
           {...register("email")}
         />
+        <div className="flex justify-between">
+          <Link
+            to={`/forgot-password?email=${encodeURIComponent(email)}`}
+            className="block text-right text-xs text-primary hover:underline"
+          >
+            Forgot password?
+          </Link>
+          <Link
+            to="/confirm-email"
+            className="block text-right text-xs text-primary hover:underline"
+          >
+            Confirm Email
+          </Link>
+        </div>
         {errors.email && (
           <p className="text-sm text-destructive">{errors.email.message}</p>
         )}

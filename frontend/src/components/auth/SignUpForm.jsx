@@ -48,7 +48,9 @@ export default function SignUpForm() {
       });
 
       if (success) {
-        await navigate("/login");
+        await navigate(
+          `/confirm-email?email=${encodeURIComponent(formData.email)}`,
+        );
       }
     } catch (error) {
       toast.add({

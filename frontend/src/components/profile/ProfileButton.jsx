@@ -9,6 +9,7 @@ import { Popover, PopoverTrigger } from "../ui/popover";
 export default function ProfileButton() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [imageKey, setImageKey] = useState(0);
 
   const handleGetProfile = async () => {
     if (profile) return;
@@ -53,7 +54,26 @@ export default function ProfileButton() {
         }
       />
 
-      {profile && <ProfilePopover user={profile} />}
+      {profile && (
+        <ProfilePopover
+          user={profile}
+          imageKey={imageKey}
+          onTwoStepVerificationEnabled={() =>
+            setProfile((currentProfile) => ({
+              ...currentProfile,
+              twoStepVerificationEnabled: true,
+              emailConfirmed: true,
+            }))
+          }
+          onImageChange={(image) => {
+            setProfile((currentProfile) => ({
+              ...currentProfile,
+              image,
+            }));
+            setImageKey((k) => k + 1);
+          }}
+        />
+      )}
     </Popover>
   );
 }
