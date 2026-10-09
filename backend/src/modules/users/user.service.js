@@ -1,8 +1,21 @@
-import { NotFoundError } from "../../common/utils/app-error.js";
-import { decrypt } from "../../common/utils/encryption.js";
+import {
+  BadRequestError,
+  NotFoundError,
+} from "../../common/exceptions/app.exception.js";
+import { buildUserKey, del, keys } from "../../common/services/redis/index.js";
+import { decrypt } from "../../common/services/security/index.js";
 import { DbService, User } from "../../database/index.js";
 
 const userRepo = new DbService(User);
+
+export async function deleteUserResources(userId) {
+  await userRepo.updateOne({ _id: userId }, { tokensValidAfter: new Date() });
+
+  const userKeys = await keys(buildUserKey(userId));
+  if (userKeys.length > 0) {
+    await del(userKeys);
+  }
+}
 
 export async function getUsers(userId) {
   const users = await userRepo.findMany(
@@ -36,5 +49,34 @@ export async function getProfile(userId) {
   return {
     message: "Profile retrieved successfully",
     data: user,
+  };
+}
+
+export async function uploadImages(userId, paths) {
+  if (Object.keys(paths).length === 0) {
+    throw BadRequestError("At least on image is required");
+  }
+
+  const user = await userRepo.findById(userId, { select: "image coverImages" });
+
+  if (!user) {
+    return NotFoundError("User not found");
+  }
+
+  const normalizePath = (path) => path.replaceAll("\\", "/");
+
+  for (const [field, fieldPaths] of Object.entries(paths)) {
+    if (Array.isArray(fieldPaths)) {
+      paths[field] = fieldPaths.map((path) => normalizePath(path));
+    } else {
+      paths[field] = normalizePath(fieldPaths);
+    }
+  }
+
+  await userRepo.updateOne({ _id: userId }, paths);
+
+  return {
+    message: "Files uploaded successfully",
+    data: paths,
   };
 }

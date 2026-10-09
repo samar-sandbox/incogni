@@ -1,10 +1,13 @@
 import { Router } from "express";
 import {
   authentication,
+  multerInstance,
   requiredRoles,
-} from "../../common/middlewares/auth.middleware.js";
-import { getProfile, getUsers } from "./user.service.js";
+  upload,
+} from "../../common/middlewares/index.js";
+import { getProfile, getUsers, uploadImages } from "./user.service.js";
 import { USER_ROLE } from "../../common/enums/user.enum.js";
+import { FILE_TYPE } from "../../common/enums/file.enum.js";
 
 const router = Router();
 
@@ -21,5 +24,21 @@ router.get("/profile", async (req, res) => {
 
   return res.status(200).json({ success: true, ...result });
 });
+
+router.post(
+  "/upload",
+  upload(
+    multerInstance.fields([
+      { name: "image", maxCount: 1 },
+      { name: "coverImages", maxCount: 2 },
+    ]),
+    FILE_TYPE.IMAGE,
+  ),
+  async (req, res) => {
+    const result = await uploadImages(req.user.id, req.paths);
+
+    return res.status(200).json({ success: true, ...result });
+  },
+);
 
 export default router;
