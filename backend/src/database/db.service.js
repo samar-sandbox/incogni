@@ -19,7 +19,9 @@ export class DbService {
     const { select, populate, lean = true } = options;
 
     if (select) query = query.select(select);
-    if (populate) query = query.populate(populate);
+    if (populate?.length > 0) {
+      query = query.populate(populate);
+    }
     if (lean) query = query.lean();
 
     return query;
@@ -223,7 +225,7 @@ export class DbService {
    * @param {number} [options.page=1] - 1-indexed page number.
    * @param {number} [options.limit=10] - Docs per page.
    * @param {Object} [options.sort={createdAt: -1}]
-   * @returns {Promise<{data: import("mongoose").Document[], total: number, page: number, limit: number, totalPages: number}>}
+   * @returns {Promise<{data: import("mongoose").Document[], pagination: { total: number, page: number, limit: number, totalPages: number }}>}
    */
   async findWithPagination(filter = {}, options = {}) {
     const { page = 1, limit = 10, sort = { createdAt: -1 }, ...rest } = options;
@@ -241,10 +243,12 @@ export class DbService {
 
     return {
       data,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
     };
   }
 

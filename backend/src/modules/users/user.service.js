@@ -66,14 +66,13 @@ export async function uploadImages(userId, paths) {
   const normalizePath = (path) => path.replaceAll("\\", "/");
 
   for (const [field, fieldPaths] of Object.entries(paths)) {
-    if (Array.isArray(fieldPaths)) {
-      paths[field] = fieldPaths.map((path) => normalizePath(path));
-    } else {
-      paths[field] = normalizePath(fieldPaths);
-    }
+    paths[field] = fieldPaths.map((path) => normalizePath(path));
   }
 
-  await userRepo.updateOne({ _id: userId }, paths);
+  await userRepo.updateOne(
+    { _id: userId },
+    { ...paths, image: paths.image?.[0] },
+  );
 
   return {
     message: "Files uploaded successfully",

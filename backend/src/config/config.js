@@ -29,4 +29,5 @@ export default {
     user: process.env.GOOGLE_MAIL_APP_USER,
     password: process.env.GOOGLE_MAIL_APP_PASSWORD,
   },
+  origins: (process.env.ORIGINS || "").split(","),
 };

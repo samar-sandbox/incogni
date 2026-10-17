@@ -4,17 +4,29 @@ import { fileFilter } from "../utils/file.js";
 import { BadRequestError } from "../exceptions/app.exception.js";
 import { FILE_MIME_TYPES } from "../enums/file.enum.js";
 import { mkdir, writeFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
 
-const dist = resolve("uploads");
+const FOLDER_NAME = "uploads";
+
+const dist = resolve(FOLDER_NAME);
 
 const storage = multer.memoryStorage();
 
 export const multerInstance = multer({ storage });
 
-function getFilePath({ fieldname, userId, currCount, ext }) {
-  const fileFullPath = normalize(
-    `${dist}/${userId}/${fieldname}/${fieldname}-${currCount}.${ext}`,
-  );
+function getFilePath({
+  fieldname,
+  originalname,
+  userId,
+  currCount,
+  ext,
+  renameFiles,
+}) {
+  const fileName = renameFiles
+    ? `${fieldname}-${currCount}.${ext}`
+    : originalname;
+
+  const fileFullPath = normalize(`${dist}/${userId}/${fieldname}/${fileName}`);
 
   const currDir = resolve();
   const filePath = relative(currDir, fileFullPath);
@@ -22,7 +34,12 @@ function getFilePath({ fieldname, userId, currCount, ext }) {
   return { filePath, fileFullPath };
 }
 
-async function processFiles({ files, allowedTypes, userId }) {
+async function processFiles({
+  files,
+  allowedTypes,
+  userId = randomUUID(),
+  renameFiles,
+}) {
   const paths = {};
 
   for (const file of files) {
@@ -37,36 +54,34 @@ async function processFiles({ files, allowedTypes, userId }) {
     }
 
     const fieldPaths = paths[fieldname] ?? [];
-    const currCount = Array.isArray(fieldPaths) ? fieldPaths.length + 1 : 2;
+    const currCount = fieldPaths.length + 1;
 
     const { filePath, fileFullPath } = getFilePath({
       fieldname,
+      originalname,
       userId,
       currCount,
       ext,
+      renameFiles,
     });
 
     await mkdir(dirname(fileFullPath), { recursive: true });
     await writeFile(fileFullPath, buffer);
 
-    const currPath = paths[fieldname];
-    if (currPath) {
-      if (!Array.isArray(currPath)) {
-        paths[fieldname] = [currPath];
-      }
-
-      paths[fieldname].push(filePath);
-    } else {
-      paths[fieldname] = filePath;
+    if (!paths[fieldname]) {
+      paths[fieldname] = [];
     }
+
+    paths[fieldname].push(filePath);
   }
 
-  return paths;
+  return { paths, dist: userId };
 }
 
 export function upload(
-  multerMiddleWare = multerInstance.array("attachment"),
+  multerMiddleWare = multerInstance.array("attachments"),
   fileType = "",
+  renameFiles = true,
 ) {
   return function (req, res, next) {
     multerMiddleWare(req, res, async (err) => {
@@ -93,14 +108,22 @@ export function upload(
         }
       }
 
+      if (files.length === 0) {
+        req.paths = {};
+
+        return next();
+      }
+
       try {
-        const paths = await processFiles({
+        const { paths, dist } = await processFiles({
           files,
           allowedTypes: FILE_MIME_TYPES[fileType] ?? [],
-          userId: req.user.id,
+          userId: req.user?.id,
+          renameFiles,
         });
 
         req.paths = paths;
+        req.dist = `${FOLDER_NAME}/${dist}`;
 
         return next();
       } catch (err) {

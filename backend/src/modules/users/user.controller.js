@@ -4,10 +4,12 @@ import {
   multerInstance,
   requiredRoles,
   upload,
+  validation,
 } from "../../common/middlewares/index.js";
 import { getProfile, getUsers, uploadImages } from "./user.service.js";
 import { USER_ROLE } from "../../common/enums/user.enum.js";
 import { FILE_TYPE } from "../../common/enums/file.enum.js";
+import { uploadImagesSchema } from "./user.schema.js";
 
 const router = Router();
 
@@ -34,6 +36,7 @@ router.post(
     ]),
     FILE_TYPE.IMAGE,
   ),
+  validation(uploadImagesSchema),
   async (req, res) => {
     const result = await uploadImages(req.user.id, req.paths);
 

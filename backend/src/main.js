@@ -1,10 +1,16 @@
 import express from "express";
 import cors from "cors";
-import { errorHandler, localization } from "./common/middlewares/index.js";
+import helmet from "helmet";
+import {
+  errorHandler,
+  localization,
+  rateLimiter,
+} from "./common/middlewares/index.js";
 import config from "./config/config.js";
 import { connectDatabase } from "./database/index.js";
 import {
   authController,
+  conversationController,
   messageController,
   userController,
 } from "./modules/index.js";
@@ -16,7 +22,11 @@ const port = config.port;
 const app = express();
 
 app.use(express.json());
-app.use(cors({ origin: "http://localhost:5173" }));
+
+app.use(cors({ origin: config.origins }), helmet());
+
+app.set("trust proxy", true);
+app.use(rateLimiter);
 
 app.use(localization);
 
@@ -25,10 +35,14 @@ app.use("/uploads", express.static("uploads"));
 app.get("/", (req, res) => {
   return res.json({ message: "Incogni API is running" });
 });
+app.get("/health", (req, res) => {
+  return res.json({ success: true });
+});
 
 app.use("/auth", authController);
 app.use("/users", userController);
-app.use("/message", messageController);
+app.use("/messages", messageController);
+app.use("/conversations", conversationController);
 
 app.use("/*splat", (req, res) => {
   const path = req.params.splat;

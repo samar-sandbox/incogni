@@ -37,11 +37,15 @@ async function checkToken(payload, user) {
   return { success: !exist };
 }
 
-export function authentication(isAccessToken = true) {
+export function authentication(isAccessToken = true, isOptional = false) {
   return async function (req, res, next) {
     const [, token] = req.headers.authorization?.split(" ") ?? [];
 
     if (!token) {
+      if (isOptional) {
+        return next();
+      }
+
       return UnauthorizedError("Token not found");
     }
 
