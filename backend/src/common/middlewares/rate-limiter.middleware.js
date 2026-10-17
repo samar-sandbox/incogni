@@ -60,7 +60,8 @@ export const rateLimiter = rateLimit({
   windowMs: 2 * 60 * 1000,
   limit: (req) => {
     const { country } = getLocation(req.ip);
-    return country === "EG" ? 5 : 0;
+    // return country === "EG" ? 5 : 0;
+    return 5;
   },
   legacyHeaders: false,
   standardHeaders: "draft-8",
