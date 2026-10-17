@@ -13,9 +13,14 @@ class RedisStore {
 
   async get(key) {
     const [hits, ttl] = await this.client.multi().get(key).ttl(key).exec();
+
+    if (!hits) {
+      return undefined;
+    }
+
     return {
-      totalHits: Number(hits || 0),
-      resetTime: new Date(Date.now() + (ttl ?? this.window)),
+      totalHits: Number(hits),
+      resetTime: new Date(Date.now() + ttl * 1000),
     };
   }
 
@@ -34,7 +39,7 @@ class RedisStore {
 
     return {
       totalHits: Number(totalHits),
-      resetTime: new Date(Date.now() + t),
+      resetTime: new Date(Date.now() + t * 1000),
     };
   }
 
